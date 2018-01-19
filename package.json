@@ -1,0 +1,25 @@
+{
+  "name": "gulp-ultimate-dependent",
+  "version": "1.0.0",
+  "description": "Gulp plugin to find the named ultimate dependent in the dependency graph.",
+  "main": "index.js",
+  "author": "Sanders DeNardi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sedenardi/gulp-ultimate-dependent.git"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/sedenardi/gulp-ultimate-dependent",
+  "dependencies": {
+    "glob": "^7.1.2",
+    "lodash": "^4.17.4",
+    "vinyl": "^2.1.0"
+  },
+  "engines": {
+    "node": ">= 8.0.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^8.2.1",
+    "eslint": "^4.15.0"
+  }
+}
