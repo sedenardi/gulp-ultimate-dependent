@@ -4,14 +4,7 @@ const promisify = require('util').promisify;
 const readFileAsync = promisify(fs.readFile);
 const _ = require('lodash');
 const glob = require('glob');
-const aGlob = (pattern) => {
-  return new Promise((resolve, reject) => {
-    glob(pattern, (err, res) => {
-      if (err) { return reject(err); }
-      return resolve(res);
-    });
-  });
-};
+const aGlob = promisify(glob);
 
 const Transform = require('stream').Transform;
 const Vinyl = require('vinyl');
@@ -82,7 +75,7 @@ const gulpUltimateDependent = (opts) => {
       done();
     }
   }
-  
+
   return new UltimateDependent();
 };
 
