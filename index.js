@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const promisify = require('util').promisify;
 const readFileAsync = promisify(fs.readFile);
+const writeFileAsync = promisify(fs.writeFile);
 const _ = require('lodash');
 const glob = require('glob');
 const aGlob = promisify(glob);
@@ -32,11 +33,22 @@ const gulpUltimateDependent = (opts) => {
     return await Promise.all(depMatches);
   };
 
+  const writeDependencies = async (depObj) => {
+    let fileName = opts.dependencyFile;
+    if (typeof fileName === 'function') {
+      fileName = fileName();
+    }
+    if (typeof fileName === 'string' && fileName) {
+      await writeFileAsync(fileName, JSON.stringify(depObj, null, 2));
+    }
+  };
+
   const buildDepMap = async () => {
     const depObj = {};
     const ultimates = await aGlob(opts.ultimateGlob);
     const ultimateMatches = ultimates.map(async (f) => getMatches(depObj, f));
     await Promise.all(ultimateMatches);
+    await writeDependencies(depObj);
     return _.entries(depObj);
   };
 

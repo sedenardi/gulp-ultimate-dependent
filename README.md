@@ -36,7 +36,8 @@ gulp.task('incrementalBuild', () => {
       matchRegex: /require\('([.|..]+[\/]+.*)'\)/g,
       replaceMatched: (f) => {
         return (!f.endsWith('.js') && !f.endsWith('.jsx')) ? `${f}.js` : f;
-      }
+      },
+      dependencyFile: 'dependencies.json'
     }))
     .pipe(build()) // build the ultimate dependents
     .pipe(gulp.dest('output/'));
@@ -51,6 +52,7 @@ gulp.task('incrementalBuild', () => {
   - `var dep = require('dep')` - `/require\('([.|..]+[\/]+.*)'\)/g`
   - `import dep from 'dep'` - `/from '([.|..]+[\/]+.*)'/g`
 - `replaceMatched [function, optional]`: used to further process matched dependency string, such as add inferred file extensions
+- `dependencyFile [string|function, optional]`: if you want to output the dependency list, specify a file name or function which returns a file name
 
 ## Tests
 
