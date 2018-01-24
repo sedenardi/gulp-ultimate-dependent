@@ -56,7 +56,9 @@ gulp.task('incrementalBuild', () => {
 
 ## Tests
 
-TODO
+```js
+npm run test
+```
 
 ## License
 
