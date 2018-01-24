@@ -13,6 +13,7 @@ const Vinyl = require('vinyl');
 const gulpUltimateDependent = (opts) => {
 
   const getMatches = async (depObj, fileName) => {
+    fileName = path.resolve(fileName);
     if (depObj[fileName]) {
       return;
     }
