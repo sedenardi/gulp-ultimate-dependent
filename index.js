@@ -11,6 +11,7 @@ const Transform = require('stream').Transform;
 const Vinyl = require('vinyl');
 
 const gulpUltimateDependent = (opts) => {
+  opts.failOnMissing = opts.failOnMissing !== undefined ? opts.failOnMissing : false;
 
   const getMatches = async (depObj, fileName) => {
     fileName = path.resolve(fileName);
@@ -18,7 +19,19 @@ const gulpUltimateDependent = (opts) => {
       return;
     }
     depObj[fileName] = [];
-    const res = await readFileAsync(fileName);
+    let res;
+    try {
+      res = await readFileAsync(fileName);
+    } catch(err) {
+      if (err.code === 'ENOENT') {
+        console.log(`WARNING: error opening file ${fileName}`);
+        if (opts.failOnMissing) {
+          throw err;
+        } else {
+          return;
+        }
+      }
+    }
     const fileContents = res.toString();
     const matches = [];
     let match;
@@ -74,7 +87,7 @@ const gulpUltimateDependent = (opts) => {
       buildDepMap().then((depObj) => {
         this.files = this.files.concat(this.findPagesForComponent(depObj, file.path));
         done();
-      });
+      }).catch((err) => { done(err); });
     }
     _flush(done) {
       const pages = _.chain(this.files)

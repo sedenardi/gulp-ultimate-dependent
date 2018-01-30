@@ -5,14 +5,15 @@ const ultimateDependent = require('..');
 const path = require('path');
 const assert = require('assert');
 
-const getStream = () => {
+const getStream = (failOnMissing) => {
   return ultimateDependent({
     ultimateGlob: '**/entry-*.js',
     ultimateMatch: (f) => { return f.includes('entry-'); },
     matchRegex: /require\('([.|..]+[\/]+.*)'\)/g,
     replaceMatched: (f) => {
       return (!f.endsWith('.js') && !f.endsWith('.jsx')) ? `${f}.js` : f;
-    }
+    },
+    failOnMissing: failOnMissing
   });
 };
 
@@ -74,6 +75,21 @@ describe('gulp-ultimate-dependent', () => {
 
     stream.on('finish', () => {
       assert.equal(results.length, 0);
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('throw error on missing dependency', (done) => {
+    const fileName = 'files/components/dep-1-4.js';
+    const filePath = path.resolve(__dirname, fileName);
+    const results = [];
+    const stream = getStream(true);
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('error', (err) => {
+      assert.equal(err.code, 'ENOENT');
       done();
     });
 
