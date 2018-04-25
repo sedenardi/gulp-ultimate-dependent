@@ -48,7 +48,7 @@ gulp.task('incrementalBuild', () => {
 
 - `ultimateGlob [string, required]`: search glob pattern identifying all ultimate parent dependents
 - `ultimateMatch [function, required]`: test to see whether file is an ultimate parent dependent (should match files that `ultimateGlob` returns)
-- `matchRegex [regex, required]`: search pattern to determine dependencies. Examples:
+- `matchRegex [regex | Array<regex>, required]`: search pattern to determine dependencies. Examples:
   - `var dep = require('dep')` - `/require\('([.|..]+[\/]+.*)'\)/g`
   - `import dep from 'dep'` - `/from '([.|..]+[\/]+.*)'/g`
 - `replaceMatched [function, optional]`: used to further process matched dependency string, such as add inferred file extensions

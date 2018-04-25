@@ -13,6 +13,22 @@ const Vinyl = require('vinyl');
 const gulpUltimateDependent = (opts) => {
   opts.failOnMissing = opts.failOnMissing !== undefined ? opts.failOnMissing : false;
 
+  const getRegexMatch = (fileContents) => {
+    if (opts.matchRegex.exec) {
+      return opts.matchRegex.exec(fileContents);
+    } else if (opts.matchRegex.length > 0) {
+      let regexMatch = null;
+      for (let i = 0; i < opts.matchRegex.length; i++) {
+        const match = opts.matchRegex[i].exec(fileContents);
+        if (match) {
+          regexMatch = match;
+          break;
+        }
+      }
+      return regexMatch;
+    }
+  };
+
   const getMatches = async (depObj, fileName) => {
     fileName = path.resolve(fileName);
     if (depObj[fileName]) {
@@ -35,7 +51,7 @@ const gulpUltimateDependent = (opts) => {
     const fileContents = res.toString();
     const matches = [];
     let match;
-    while (match = opts.matchRegex.exec(fileContents)) {
+    while (match = getRegexMatch(fileContents)) {
       const matchPath = path.resolve(path.join(path.dirname(fileName), match[1]));
       const result = opts.replaceMatched ? opts.replaceMatched(matchPath) : matchPath;
       if (!_.some(depObj[fileName], (id) => id === result)) {
