@@ -29,7 +29,7 @@ const gulpUltimateDependent = (opts) => {
     }
   };
 
-  const getMatches = async (depObj, fileName) => {
+  const getMatches = async (depObj, fileName, fromFile) => {
     fileName = path.resolve(fileName);
     if (depObj[fileName]) {
       return;
@@ -40,7 +40,7 @@ const gulpUltimateDependent = (opts) => {
       res = await readFileAsync(fileName);
     } catch(err) {
       if (err.code === 'ENOENT') {
-        console.log(`WARNING: error opening file ${fileName}`);
+        console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
         if (opts.failOnMissing) {
           throw err;
         } else {
@@ -59,7 +59,7 @@ const gulpUltimateDependent = (opts) => {
       }
       matches.push(result);
     }
-    const depMatches = matches.map(async (f) => getMatches(depObj, f));
+    const depMatches = matches.map(async (f) => getMatches(depObj, f, fileName));
     return await Promise.all(depMatches);
   };
 
