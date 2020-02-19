@@ -12,17 +12,17 @@
   "homepage": "https://github.com/sedenardi/gulp-ultimate-dependent",
   "dependencies": {
     "glob": "^7.1.2",
-    "lodash": "^4.17.4",
+    "lodash.flattendeep": "^4.4.0",
+    "lodash.uniqby": "^4.7.0",
     "vinyl": "^2.1.0"
   },
   "engines": {
     "node": ">= 8.0.0"
   },
   "devDependencies": {
-    "babel-eslint": "^8.2.1",
-    "eslint": "^4.15.0",
-    "gulp": "^4.0.0",
-    "mocha": "^5.0.0"
+    "babel-eslint": "^10.0.3",
+    "eslint": "^6.8.0",
+    "mocha": "^7.0.1"
   },
   "scripts": {
     "test": "mocha"

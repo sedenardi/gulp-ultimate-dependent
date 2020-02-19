@@ -3,7 +3,8 @@ const fs = require('fs');
 const promisify = require('util').promisify;
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
-const _ = require('lodash');
+const flattenDeep = require('lodash.flattendeep');
+const uniqBy = require('lodash.uniqby');
 const glob = require('glob');
 const aGlob = promisify(glob);
 
@@ -54,7 +55,7 @@ const gulpUltimateDependent = (opts) => {
     while (match = getRegexMatch(fileContents)) {
       const matchPath = path.resolve(path.join(path.dirname(fileName), match[1]));
       const result = opts.replaceMatched ? opts.replaceMatched(matchPath) : matchPath;
-      if (!_.some(depObj[fileName], (id) => id === result)) {
+      if (!depObj[fileName].some((id) => id === result)) {
         depObj[fileName].push(result);
       }
       matches.push(result);
@@ -79,7 +80,7 @@ const gulpUltimateDependent = (opts) => {
     const ultimateMatches = ultimates.map(async (f) => getMatches(depObj, f));
     await Promise.all(ultimateMatches);
     await writeDependencies(depObj);
-    return _.entries(depObj);
+    return Object.keys(depObj).map((key) => [key, depObj[key]]);
   };
 
   class UltimateDependent extends Transform {
@@ -87,32 +88,27 @@ const gulpUltimateDependent = (opts) => {
       super({ objectMode: true });
       this.files = [];
     }
-    findPagesForComponent(depObj, c) {
+    findPagesForComponent(depArray, c) {
       if (!c.startsWith('/')) {
         c = '/' + c;
       }
       if (opts.ultimateMatch(c)) {
         return [c];
       }
-      return _.chain(depObj)
-        .filter((a) =>  _.some(a[1], (id) => id === c))
-        .map((a) => this.findPagesForComponent(depObj, a[0]))
-        .value();
+      return depArray.filter((a) =>  a[1].some((id) => id === c))
+        .map((a) => this.findPagesForComponent(depArray, a[0]));
     }
     _transform(file, encoding, done) {
-      buildDepMap().then((depObj) => {
-        this.files = this.files.concat(this.findPagesForComponent(depObj, file.path));
+      buildDepMap().then((depArray) => {
+        this.files = this.files.concat(this.findPagesForComponent(depArray, file.path));
         done();
       }).catch((err) => { done(err); });
     }
     _flush(done) {
-      const pages = _.chain(this.files)
-        .flattenDeep()
-        .uniqBy((p) => {
-          const parts = p.split('/');
-          return parts[parts.length - 1];
-        })
-        .value();
+      const pages = uniqBy(flattenDeep(this.files), (p) => {
+        const parts = p.split('/');
+        return parts[parts.length - 1];
+      });
       pages.forEach((p) => this.push(new Vinyl({ path: p })));
       done();
     }
