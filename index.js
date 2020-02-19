@@ -31,7 +31,7 @@ const gulpUltimateDependent = function(opts = {}) {
       matches.push(...commonJS);
     }
     if (opts.esm) {
-      const esm = [...fileContents.matchAll(importRegex())].map((match) => match(2));
+      const esm = [...fileContents.matchAll(importRegex())].map((match) => match[2]);
       matches.push(...esm);
     }
     return matches.filter((match) => {
