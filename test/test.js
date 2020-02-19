@@ -5,16 +5,17 @@ const ultimateDependent = require('..');
 const path = require('path');
 const assert = require('assert');
 
-const getStream = function(failOnMissing) {
+const getStream = function(opts = {}) {
+  opts = {
+    failOnMissing: false,
+    ...opts
+  };
   return ultimateDependent({
     ultimateGlob: '**/entry-*.js',
     ultimateMatch: (f) => { return f.includes('entry-'); },
     commonJS: true,
     esm: true,
-    replaceMatched: (f) => {
-      return (!f.endsWith('.js') && !f.endsWith('.jsx')) ? `${f}.js` : f;
-    },
-    failOnMissing: failOnMissing
+    failOnMissing: opts.failOnMissing
   });
 };
 
@@ -86,7 +87,9 @@ describe('gulp-ultimate-dependent', () => {
     const fileName = 'files/components/dep-1-4.js';
     const filePath = path.resolve(__dirname, fileName);
     const results = [];
-    const stream = getStream(true);
+    const stream = getStream({
+      failOnMissing: true
+    });
     stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('error', (err) => {

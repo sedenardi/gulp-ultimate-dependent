@@ -18,6 +18,7 @@ const gulpUltimateDependent = function(opts) {
   opts.failOnMissing = opts.failOnMissing !== undefined ? opts.failOnMissing : false;
   opts.commonJS = opts.commonJS !== undefined ? opts.commonJS : true;
   opts.esm = opts.esm !== undefined ? opts.esm : true;
+  opts.extensions = Array.isArray(opts.extensions) ? opts.extensions : ['.js'];
 
   const getRegexMatches = function(fileContents) {
     const matches = [];
@@ -37,36 +38,58 @@ const gulpUltimateDependent = function(opts) {
     });
   };
 
+  const resolveFile = async function(fileName, fromFile) {
+    const fileNames = [
+      fileName,
+      ...opts.extensions.map((ext) => `${fileName}${ext}`)
+    ];
+    let actualFileName;
+    let res;
+    for (const extName of fileNames) {
+      try {
+        const buf = await readFileAsync(extName);
+        actualFileName = extName;
+        res = buf;
+        break;
+      } catch(err) { }
+    }
+    if (res) {
+      return [actualFileName, res];
+    }
+    console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
+    if (opts.failOnMissing) {
+      const err = new Error(`Error opening file ${fileName} from ${fromFile || fileName}`);
+      err.code = 'ENOENT';
+      throw err;
+    }
+    return [null, null];
+  };
+
   const getMatches = async function(depObj, fileName, fromFile) {
     fileName = path.resolve(fileName);
     if (depObj[fileName]) {
       return;
     }
-    depObj[fileName] = [];
-    let res;
-    try {
-      res = await readFileAsync(fileName);
-    } catch(err) {
-      if (err.code === 'ENOENT') {
-        console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
-        if (opts.failOnMissing) {
-          throw err;
-        } else {
-          return;
-        }
-      }
+    const [actualFileName, res] = await resolveFile(fileName, fromFile);
+    if (!res) {
+      return;
     }
+    depObj[actualFileName] = [];
     const fileContents = res.toString();
     const rMatches = getRegexMatches(fileContents);
-    const matches = rMatches.map((match) => {
-      const matchPath = path.resolve(path.join(path.dirname(fileName), match));
-      const result = opts.replaceMatched ? opts.replaceMatched(matchPath) : matchPath;
-      if (!depObj[fileName].some((id) => id === result)) {
-        depObj[fileName].push(result);
+    const matches = [];
+    for (const match of rMatches) {
+      const result = path.resolve(path.join(path.dirname(actualFileName), match));
+      const [actualMatch] = await resolveFile(result, actualFileName);
+      if (!actualMatch) {
+        continue;
       }
-      return result;
-    });
-    const depMatches = matches.map(async (f) => getMatches(depObj, f, fileName));
+      if (!depObj[actualFileName].some((id) => id === actualMatch)) {
+        depObj[actualFileName].push(actualMatch);
+      }
+      matches.push(actualMatch);
+    }
+    const depMatches = matches.map(async (f) => getMatches(depObj, f, actualFileName));
     return await Promise.all(depMatches);
   };
 
