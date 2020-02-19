@@ -12,7 +12,8 @@
   "homepage": "https://github.com/sedenardi/gulp-ultimate-dependent",
   "dependencies": {
     "glob": "^7.1.2",
-    "lodash": "^4.17.4",
+    "lodash.flattendeep": "^4.4.0",
+    "lodash.uniqby": "^4.7.0",
     "vinyl": "^2.1.0"
   },
   "engines": {
