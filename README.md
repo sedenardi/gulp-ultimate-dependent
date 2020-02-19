@@ -53,7 +53,7 @@ gulp.task('incrementalBuild', () => {
   - `import dep from 'dep'` - `/from '([.|..]+[\/]+.*)'/g`
 - `replaceMatched [function, optional]`: used to further process matched dependency string, such as add inferred file extensions
 - `dependencyFile [string|function, optional]`: if you want to output the dependency list, specify a file name or function which returns a file name
-- `failOnMissing` [bool, optional, default `false`]: if `true`, stream will fail if it finds a dependency whose underlying file is missing (this is common if you delete a file you're watching). If `false`, stream still returns affected dependents. The stream will still fail on other errors.
+- `failOnMissing [bool, optional, default false`]: if `true`, stream will fail if it finds a dependency whose underlying file is missing (this is common if you delete a file you're watching). If `false`, stream still returns affected dependents. The stream will still fail on other errors.
 
 ## Tests
 
