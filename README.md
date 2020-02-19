@@ -35,7 +35,9 @@ gulp.task('incrementalBuild', () => {
       commonJS: true,
       esm: true,
       extensions: ['.js'],
-      dependencyFile: 'dependencies.json'
+      dependencyFile: 'dependencies.json',
+      warnOnMissing: true,
+      failOnMissing: true
     }))
     .pipe(build()) // build the ultimate dependents
     .pipe(gulp.dest('output/'));
@@ -49,6 +51,7 @@ gulp.task('incrementalBuild', () => {
 - `esm: bool` - optional, default `true` - include ES Module `import` dependencies
 - `extensions: string[]` - optional, default `['.js']` - used to further process matched dependency string, such as add inferred file extensions
 - `dependencyFile: string | () => string` - optional - if you want to output the dependency list, specify a file name or function which returns a file name
+- `warnOnMissing: bool` - optional, default `false` - if `true`, stream will output to console if it finds a dependency whose file is missing.
 - `failOnMissing: bool` - optional, default `false` - if `true`, stream will fail if it finds a dependency whose underlying file is missing (this is common if you delete a file you're watching). If `false`, stream still returns affected dependents. The stream will still fail on other errors.
 
 ## Tests

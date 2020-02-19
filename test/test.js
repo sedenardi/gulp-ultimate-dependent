@@ -1,8 +1,6 @@
-/* global describe */
-/* global it */
-
 const ultimateDependent = require('..');
 const path = require('path');
+const { describe, it } = require('mocha');
 const assert = require('assert');
 
 const getStream = function(opts = {}) {

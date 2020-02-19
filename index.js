@@ -14,11 +14,15 @@ const Vinyl = require('vinyl');
 const requireRegex = require('requires-regex');
 const importRegex = require('esm-import-regex');
 
-const gulpUltimateDependent = function(opts) {
-  opts.failOnMissing = opts.failOnMissing !== undefined ? opts.failOnMissing : false;
-  opts.commonJS = opts.commonJS !== undefined ? opts.commonJS : true;
-  opts.esm = opts.esm !== undefined ? opts.esm : true;
-  opts.extensions = Array.isArray(opts.extensions) ? opts.extensions : ['.js'];
+const gulpUltimateDependent = function(opts = {}) {
+  opts = {
+    commonJS: true,
+    esm: true,
+    extensions: ['.js'],
+    warnOnMissing: false,
+    failOnMissing: false,
+    ...opts
+  };
 
   const getRegexMatches = function(fileContents) {
     const matches = [];
@@ -56,7 +60,9 @@ const gulpUltimateDependent = function(opts) {
     if (res) {
       return [actualFileName, res];
     }
-    console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
+    if (opts.warnOnMissing) {
+      console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
+    }
     if (opts.failOnMissing) {
       const err = new Error(`Error opening file ${fileName} from ${fromFile || fileName}`);
       err.code = 'ENOENT';
