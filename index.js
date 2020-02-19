@@ -109,7 +109,8 @@ const gulpUltimateDependent = function(opts) {
     const ultimateMatches = ultimates.map(async (f) => getMatches(depObj, f));
     await Promise.all(ultimateMatches);
     await writeDependencies(depObj);
-    return Object.keys(depObj).map((key) => [key, depObj[key]]);
+    const depArray = Object.keys(depObj).map((key) => [key, depObj[key]]);
+    return [depArray, ultimates];
   };
 
   class UltimateDependent extends Transform {
@@ -117,19 +118,19 @@ const gulpUltimateDependent = function(opts) {
       super({ objectMode: true });
       this.files = [];
     }
-    findPagesForComponent(depArray, c) {
+    findPagesForComponent(depArray, ultimates, c) {
       if (!c.startsWith('/')) {
         c = '/' + c;
       }
-      if (opts.ultimateMatch(c)) {
+      if (ultimates.some((u) => c.endsWith(u))) {
         return [c];
       }
       return depArray.filter((a) =>  a[1].some((id) => id === c))
-        .map((a) => this.findPagesForComponent(depArray, a[0]));
+        .map((a) => this.findPagesForComponent(depArray, ultimates, a[0]));
     }
-    _transform(file, encoding, done) {
-      buildDepMap().then((depArray) => {
-        this.files = this.files.concat(this.findPagesForComponent(depArray, file.path));
+    _transform(file, _, done) {
+      buildDepMap().then(([depArray, ultimates]) => {
+        this.files = this.files.concat(this.findPagesForComponent(depArray, ultimates, file.path));
         done();
       }).catch((err) => {
         done(err);

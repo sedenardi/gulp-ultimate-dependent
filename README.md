@@ -32,7 +32,6 @@ gulp.task('incrementalBuild', () => {
   ], { since: gulp.lastRun(incrementalBuild) || firstRun }) // what's changed
     .pipe(ultimateDependent({
       ultimateGlob: 'src/**/*ParentPage.jsx',
-      ultimateMatch: (f) => { return f.endsWith('ParentPage.jsx'); },
       commonJS: true,
       esm: true,
       extensions: ['.js'],
@@ -46,7 +45,6 @@ gulp.task('incrementalBuild', () => {
 ## Options
 
 - `ultimateGlob: string` - **required** - search glob pattern identifying all ultimate parent dependents
-- `ultimateMatch: (f: string) => bool` - **required** - test to see whether file is an ultimate parent dependent (should match files that `ultimateGlob` returns)
 - `commonJS: bool` - optional, default `true` - include CommonJS `require()` dependencies
 - `esm: bool` - optional, default `true` - include ES Module `import` dependencies
 - `extensions: string[]` - optional, default `['.js']` - used to further process matched dependency string, such as add inferred file extensions

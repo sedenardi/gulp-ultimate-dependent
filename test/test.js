@@ -12,7 +12,6 @@ const getStream = function(opts = {}) {
   };
   return ultimateDependent({
     ultimateGlob: '**/entry-*.js',
-    ultimateMatch: (f) => { return f.includes('entry-'); },
     commonJS: true,
     esm: true,
     failOnMissing: opts.failOnMissing
