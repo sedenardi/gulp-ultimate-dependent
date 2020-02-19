@@ -5,11 +5,12 @@ const ultimateDependent = require('..');
 const path = require('path');
 const assert = require('assert');
 
-const getStream = (failOnMissing) => {
+const getStream = function(failOnMissing) {
   return ultimateDependent({
     ultimateGlob: '**/entry-*.js',
     ultimateMatch: (f) => { return f.includes('entry-'); },
-    matchRegex: /require\('([.|..]+[\/]+.*)'\)/g,
+    commonJS: true,
+    esm: true,
     replaceMatched: (f) => {
       return (!f.endsWith('.js') && !f.endsWith('.jsx')) ? `${f}.js` : f;
     },
@@ -58,8 +59,8 @@ describe('gulp-ultimate-dependent', () => {
     stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 1);
-      assert.ok(results[0].includes('files/entry-1.js'));
+      assert.equal(results.length, 2);
+      assert.ok(results.some((r) => r.includes('files/entry-1.js')));
       done();
     });
 
