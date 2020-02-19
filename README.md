@@ -32,12 +32,12 @@ gulp.task('incrementalBuild', () => {
   ], { since: gulp.lastRun(incrementalBuild) || firstRun }) // what's changed
     .pipe(ultimateDependent({
       ultimateGlob: 'src/**/*ParentPage.jsx',
-      ultimateMatch: (f) => { return f.endsWith('ParentPage.jsx'); },
-      matchRegex: /require\('([.|..]+[\/]+.*)'\)/g,
-      replaceMatched: (f) => {
-        return (!f.endsWith('.js') && !f.endsWith('.jsx')) ? `${f}.js` : f;
-      },
-      dependencyFile: 'dependencies.json'
+      commonJS: true,
+      esm: true,
+      extensions: ['.js'],
+      dependencyFile: 'dependencies.json',
+      warnOnMissing: true,
+      failOnMissing: true
     }))
     .pipe(build()) // build the ultimate dependents
     .pipe(gulp.dest('output/'));
@@ -46,14 +46,13 @@ gulp.task('incrementalBuild', () => {
 
 ## Options
 
-- `ultimateGlob [string, required]`: search glob pattern identifying all ultimate parent dependents
-- `ultimateMatch [function, required]`: test to see whether file is an ultimate parent dependent (should match files that `ultimateGlob` returns)
-- `matchRegex [regex | Array<regex>, required]`: search pattern to determine dependencies. Examples:
-  - `var dep = require('dep')` - `/require\('([.|..]+[\/]+.*)'\)/g`
-  - `import dep from 'dep'` - `/from '([.|..]+[\/]+.*)'/g`
-- `replaceMatched [function, optional]`: used to further process matched dependency string, such as add inferred file extensions
-- `dependencyFile [string|function, optional]`: if you want to output the dependency list, specify a file name or function which returns a file name
-- `failOnMissing [bool, optional, default false`]: if `true`, stream will fail if it finds a dependency whose underlying file is missing (this is common if you delete a file you're watching). If `false`, stream still returns affected dependents. The stream will still fail on other errors.
+- `ultimateGlob: string` - **required** - search glob pattern identifying all ultimate parent dependents
+- `commonJS: bool` - optional, default `true` - include CommonJS `require()` dependencies
+- `esm: bool` - optional, default `true` - include ES Module `import` dependencies
+- `extensions: string[]` - optional, default `['.js']` - used to further process matched dependency string, such as add inferred file extensions
+- `dependencyFile: string | () => string` - optional - if you want to output the dependency list, specify a file name or function which returns a file name
+- `warnOnMissing: bool` - optional, default `false` - if `true`, stream will output to console if it finds a dependency whose file is missing.
+- `failOnMissing: bool` - optional, default `false` - if `true`, stream will fail if it finds a dependency whose underlying file is missing (this is common if you delete a file you're watching). If `false`, stream still returns affected dependents. The stream will still fail on other errors.
 
 ## Tests
 

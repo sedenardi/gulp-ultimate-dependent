@@ -11,9 +11,11 @@
   "license": "MIT",
   "homepage": "https://github.com/sedenardi/gulp-ultimate-dependent",
   "dependencies": {
+    "esm-import-regex": "^1.0.0",
     "glob": "^7.1.2",
     "lodash.flattendeep": "^4.4.0",
     "lodash.uniqby": "^4.7.0",
+    "requires-regex": "^1.0.4",
     "vinyl": "^2.1.0"
   },
   "engines": {

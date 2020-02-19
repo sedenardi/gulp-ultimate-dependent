@@ -11,60 +11,95 @@ const aGlob = promisify(glob);
 const Transform = require('stream').Transform;
 const Vinyl = require('vinyl');
 
-const gulpUltimateDependent = (opts) => {
-  opts.failOnMissing = opts.failOnMissing !== undefined ? opts.failOnMissing : false;
+const requireRegex = require('requires-regex');
+const importRegex = require('esm-import-regex');
 
-  const getRegexMatch = (fileContents) => {
-    if (opts.matchRegex.exec) {
-      return opts.matchRegex.exec(fileContents);
-    } else if (opts.matchRegex.length > 0) {
-      let regexMatch = null;
-      for (let i = 0; i < opts.matchRegex.length; i++) {
-        const match = opts.matchRegex[i].exec(fileContents);
-        if (match) {
-          regexMatch = match;
-          break;
-        }
-      }
-      return regexMatch;
-    }
+const gulpUltimateDependent = function(opts = {}) {
+  opts = {
+    commonJS: true,
+    esm: true,
+    extensions: ['.js'],
+    warnOnMissing: false,
+    failOnMissing: false,
+    ...opts
   };
 
-  const getMatches = async (depObj, fileName, fromFile) => {
+  const getRegexMatches = function(fileContents) {
+    const matches = [];
+    if (opts.commonJS) {
+      const commonJS = [...fileContents.matchAll(requireRegex())].map((match) => match[4]);
+      matches.push(...commonJS);
+    }
+    if (opts.esm) {
+      const esm = [...fileContents.matchAll(importRegex())].map((match) => match[2]);
+      matches.push(...esm);
+    }
+    return matches.filter((match) => {
+      return typeof match === 'string' && (
+        match.startsWith('./') ||
+        match.startsWith('../')
+      );
+    });
+  };
+
+  const resolveFile = async function(fileName, fromFile) {
+    const fileNames = [
+      fileName,
+      ...opts.extensions.map((ext) => `${fileName}${ext}`)
+    ];
+    let actualFileName;
+    let res;
+    for (const extName of fileNames) {
+      try {
+        const buf = await readFileAsync(extName);
+        actualFileName = extName;
+        res = buf;
+        break;
+      } catch(err) { }
+    }
+    if (res) {
+      return [actualFileName, res];
+    }
+    if (opts.warnOnMissing) {
+      console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
+    }
+    if (opts.failOnMissing) {
+      const err = new Error(`Error opening file ${fileName} from ${fromFile || fileName}`);
+      err.code = 'ENOENT';
+      throw err;
+    }
+    return [null, null];
+  };
+
+  const getMatches = async function(depObj, fileName, fromFile) {
     fileName = path.resolve(fileName);
     if (depObj[fileName]) {
       return;
     }
-    depObj[fileName] = [];
-    let res;
-    try {
-      res = await readFileAsync(fileName);
-    } catch(err) {
-      if (err.code === 'ENOENT') {
-        console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
-        if (opts.failOnMissing) {
-          throw err;
-        } else {
-          return;
-        }
-      }
+    const [actualFileName, res] = await resolveFile(fileName, fromFile);
+    if (!res) {
+      return;
     }
+    depObj[actualFileName] = [];
     const fileContents = res.toString();
+    const rMatches = getRegexMatches(fileContents);
     const matches = [];
-    let match;
-    while (match = getRegexMatch(fileContents)) {
-      const matchPath = path.resolve(path.join(path.dirname(fileName), match[1]));
-      const result = opts.replaceMatched ? opts.replaceMatched(matchPath) : matchPath;
-      if (!depObj[fileName].some((id) => id === result)) {
-        depObj[fileName].push(result);
+    for (const match of rMatches) {
+      const result = path.resolve(path.join(path.dirname(actualFileName), match));
+      const [actualMatch] = await resolveFile(result, actualFileName);
+      if (!actualMatch) {
+        continue;
       }
-      matches.push(result);
+      if (!depObj[actualFileName].some((id) => id === actualMatch)) {
+        depObj[actualFileName].push(actualMatch);
+      }
+      matches.push(actualMatch);
     }
-    const depMatches = matches.map(async (f) => getMatches(depObj, f, fileName));
+    const depMatches = matches.map(async (f) => getMatches(depObj, f, actualFileName));
     return await Promise.all(depMatches);
   };
 
-  const writeDependencies = async (depObj) => {
+  const writeDependencies = async function(depObj) {
     let fileName = opts.dependencyFile;
     if (typeof fileName === 'function') {
       fileName = fileName();
@@ -74,13 +109,14 @@ const gulpUltimateDependent = (opts) => {
     }
   };
 
-  const buildDepMap = async () => {
+  const buildDepMap = async function() {
     const depObj = {};
     const ultimates = await aGlob(opts.ultimateGlob);
     const ultimateMatches = ultimates.map(async (f) => getMatches(depObj, f));
     await Promise.all(ultimateMatches);
     await writeDependencies(depObj);
-    return Object.keys(depObj).map((key) => [key, depObj[key]]);
+    const depArray = Object.keys(depObj).map((key) => [key, depObj[key]]);
+    return [depArray, ultimates];
   };
 
   class UltimateDependent extends Transform {
@@ -88,21 +124,23 @@ const gulpUltimateDependent = (opts) => {
       super({ objectMode: true });
       this.files = [];
     }
-    findPagesForComponent(depArray, c) {
+    findPagesForComponent(depArray, ultimates, c) {
       if (!c.startsWith('/')) {
         c = '/' + c;
       }
-      if (opts.ultimateMatch(c)) {
+      if (ultimates.some((u) => c.endsWith(u))) {
         return [c];
       }
       return depArray.filter((a) =>  a[1].some((id) => id === c))
-        .map((a) => this.findPagesForComponent(depArray, a[0]));
+        .map((a) => this.findPagesForComponent(depArray, ultimates, a[0]));
     }
-    _transform(file, encoding, done) {
-      buildDepMap().then((depArray) => {
-        this.files = this.files.concat(this.findPagesForComponent(depArray, file.path));
+    _transform(file, _, done) {
+      buildDepMap().then(([depArray, ultimates]) => {
+        this.files = this.files.concat(this.findPagesForComponent(depArray, ultimates, file.path));
         done();
-      }).catch((err) => { done(err); });
+      }).catch((err) => {
+        done(err);
+      });
     }
     _flush(done) {
       const pages = uniqBy(flattenDeep(this.files), (p) => {

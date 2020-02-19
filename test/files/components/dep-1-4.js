@@ -1,5 +1,5 @@
 /*
-* Fake intermediary dependency tht fails
+* Fake intermediary dependency that fails
 */
 
 const child3 = require('./dep-2-3');
