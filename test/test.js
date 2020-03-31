@@ -227,4 +227,43 @@ describe('gulp-ultimate-dependent - TS', () => {
     stream.write({ path: filePath});
     stream.end();
   });
+  it('ignores circular dependency', (done) => {
+    const fileName = 'files/components/dep-circular-1.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      extensions: ['.js', '.ts'],
+      ignoreCircularDependency: true
+    });
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.equal(results.length, 1);
+      assert.ok(results.some((r) => r.includes('files/entry-circular.ts')));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('throws error on circular dependency', (done) => {
+    const fileName = 'files/components/dep-circular-1.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      extensions: ['.js', '.ts'],
+      ignoreCircularDependency: false
+    });
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('error', (err) => {
+      assert.ok(err.message.startsWith('Circular dependency detected in'));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
 });

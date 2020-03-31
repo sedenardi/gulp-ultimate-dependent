@@ -21,6 +21,7 @@ const gulpUltimateDependent = function(opts = {}) {
     extensions: ['.js'],
     warnOnMissing: false,
     failOnMissing: false,
+    ignoreCircularDependency: true,
     ...opts
   };
 
@@ -123,6 +124,7 @@ const gulpUltimateDependent = function(opts = {}) {
     constructor() {
       super({ objectMode: true });
       this.files = [];
+      this.seen = new Set();
     }
     findPagesForComponent(depArray, ultimates, c) {
       if (!c.startsWith('/')) {
@@ -131,6 +133,14 @@ const gulpUltimateDependent = function(opts = {}) {
       if (ultimates.some((u) => c.endsWith(u))) {
         return [c];
       }
+      if (this.seen.has(c)) {
+        if (opts.ignoreCircularDependency) {
+          return [];
+        } else {
+          throw new Error(`Circular dependency detected in ${c}`);
+        }
+      }
+      this.seen.add(c);
       return depArray.filter((a) =>  a[1].some((id) => id === c))
         .map((a) => this.findPagesForComponent(depArray, ultimates, a[0]));
     }

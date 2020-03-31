@@ -53,6 +53,7 @@ gulp.task('incrementalBuild', () => {
 - `dependencyFile: string | () => string` - optional - if you want to output the dependency list, specify a file name or function which returns a file name
 - `warnOnMissing: bool` - optional, default `false` - if `true`, stream will output to console if it finds a dependency whose file is missing.
 - `failOnMissing: bool` - optional, default `false` - if `true`, stream will fail if it finds a dependency whose underlying file is missing (this is common if you delete a file you're watching). If `false`, stream still returns affected dependents. The stream will still fail on other errors.
+- `ignoreCircularDependency: bool` - optional, default `true` - if `true`, stream will ignore files it's already traversed, indicating a circular dependency. If `false`, stream will emit an error with the first file it sees twice.
 
 ## Tests
 
