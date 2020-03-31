@@ -72,16 +72,16 @@ const gulpUltimateDependent = function(opts = {}) {
     return [null, null];
   };
 
-  const getMatches = async function(depObj, fileName, fromFile) {
+  const getMatches = async function(depMap, fileName, fromFile) {
     fileName = path.resolve(fileName);
-    if (depObj[fileName]) {
+    if (depMap.has(fileName)) {
       return;
     }
     const [actualFileName, res] = await resolveFile(fileName, fromFile);
     if (!res) {
       return;
     }
-    depObj[actualFileName] = [];
+    depMap.set(actualFileName, new Set());
     const fileContents = res.toString();
     const rMatches = getRegexMatches(fileContents);
     const matches = [];
@@ -91,33 +91,36 @@ const gulpUltimateDependent = function(opts = {}) {
       if (!actualMatch) {
         continue;
       }
-      if (!depObj[actualFileName].some((id) => id === actualMatch)) {
-        depObj[actualFileName].push(actualMatch);
+      if (!depMap.get(actualFileName).has(actualMatch)) {
+        depMap.get(actualFileName).add(actualMatch);
       }
       matches.push(actualMatch);
     }
-    const depMatches = matches.map(async (f) => getMatches(depObj, f, actualFileName));
+    const depMatches = matches.map(async (f) => getMatches(depMap, f, actualFileName));
     return await Promise.all(depMatches);
   };
 
-  const writeDependencies = async function(depObj) {
+  const writeDependencies = async function(depMap) {
     let fileName = opts.dependencyFile;
     if (typeof fileName === 'function') {
       fileName = fileName();
     }
     if (typeof fileName === 'string' && fileName) {
+      const depObj = Array.from(depMap.entries()).reduce((res, [k, set]) => {
+        res[k] = Array.from(set.keys());
+        return res;
+      }, {});
       await writeFileAsync(fileName, JSON.stringify(depObj, null, 2));
     }
   };
 
   const buildDepMap = async function() {
-    const depObj = {};
-    const ultimates = await aGlob(opts.ultimateGlob);
-    const ultimateMatches = ultimates.map(async (f) => getMatches(depObj, f));
+    const depMap = new Map();
+    const ultimates = await aGlob(opts.ultimateGlob, { absolute: true });
+    const ultimateMatches = ultimates.map(async (f) => getMatches(depMap, f));
     await Promise.all(ultimateMatches);
-    await writeDependencies(depObj);
-    const depArray = Object.keys(depObj).map((key) => [key, depObj[key]]);
-    return [depArray, ultimates];
+    await writeDependencies(depMap);
+    return [depMap, new Set(ultimates)];
   };
 
   class UltimateDependent extends Transform {
@@ -126,11 +129,11 @@ const gulpUltimateDependent = function(opts = {}) {
       this.files = [];
       this.seen = new Set();
     }
-    findPagesForComponent(depArray, ultimates, c) {
+    findPagesForComponent(depMap, ultimatesSet, c) {
       if (!c.startsWith('/')) {
         c = '/' + c;
       }
-      if (ultimates.some((u) => c.endsWith(u))) {
+      if (ultimatesSet.has(c)) {
         return [c];
       }
       if (this.seen.has(c)) {
@@ -141,12 +144,16 @@ const gulpUltimateDependent = function(opts = {}) {
         }
       }
       this.seen.add(c);
-      return depArray.filter((a) =>  a[1].some((id) => id === c))
-        .map((a) => this.findPagesForComponent(depArray, ultimates, a[0]));
+      const pages = [];
+      for (let [k, set] of depMap) {
+        if (!set.has(c)) { continue; }
+        pages.push(this.findPagesForComponent(depMap, ultimatesSet, k));
+      }
+      return pages;
     }
     _transform(file, _, done) {
-      buildDepMap().then(([depArray, ultimates]) => {
-        this.files = this.files.concat(this.findPagesForComponent(depArray, ultimates, file.path));
+      buildDepMap().then(([depMap, ultimatesSet]) => {
+        this.files = this.files.concat(this.findPagesForComponent(depMap, ultimatesSet, file.path));
         done();
       }).catch((err) => {
         done(err);
