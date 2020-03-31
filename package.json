@@ -1,6 +1,6 @@
 {
   "name": "gulp-ultimate-dependent",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Gulp plugin to find the named ultimate dependent in the dependency graph.",
   "main": "index.js",
   "author": "Sanders DeNardi",
