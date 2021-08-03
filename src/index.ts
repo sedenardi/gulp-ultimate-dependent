@@ -37,12 +37,17 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
   let ultimates: Set<string>;
 
   const getDependencies = function(fileContents: string) {
-    const dependencies = detective(fileContents, {
+    const dependencies: string[] = detective(fileContents, {
       skipTypeImports: opts.skipTypeImports,
       mixedImports: opts.mixedImports,
       jsx: opts.jsx
     });
-    return dependencies;
+    return dependencies.filter((dep) => {
+      return (
+        dep.startsWith('./') ||
+        dep.startsWith('../')
+      );
+    });
   };
 
   const resolveFile = async function(fileName: string, fromFile?: string) {

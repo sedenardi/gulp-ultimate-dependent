@@ -1,0 +1,6 @@
+{
+  "/Users/sanders/code/gulp-ultimate-dependent/test/files/entry-8.ts": [
+    "/Users/sanders/code/gulp-ultimate-dependent/test/files/components/dep-1-10.ts"
+  ],
+  "/Users/sanders/code/gulp-ultimate-dependent/test/files/components/dep-1-10.ts": []
+}
