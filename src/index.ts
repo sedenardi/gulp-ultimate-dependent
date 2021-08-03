@@ -1,28 +1,36 @@
-const path = require('path');
-const fs = require('fs');
-const promisify = require('util').promisify;
-const readFileAsync = promisify(fs.readFile);
-const writeFileAsync = promisify(fs.writeFile);
-const flattenDeep = require('lodash.flattendeep');
-const uniqBy = require('lodash.uniqby');
-const glob = require('glob');
+import path from 'path';
+import { promises as fsPromises } from 'fs';
+import { promisify } from 'util';
+import uniqBy from 'lodash.uniqby';
+import glob from 'glob';
 const aGlob = promisify(glob);
 
-const Transform = require('stream').Transform;
-const Vinyl = require('vinyl');
+import { Transform } from 'stream';
+import Vinyl from 'vinyl';
 
-const requireRegex = require('requires-regex');
-const importRegex = require('esm-import-regex');
+import requireRegex from 'requires-regex';
+import importRegex from 'esm-import-regex';
 
-const gulpUltimateDependent = function(opts = {}) {
-  opts = {
+type UltimateDependentOpts = {
+  ultimateGlob: string;
+  commonJS?: boolean;
+  esm?: boolean;
+  extensions?: string[];
+  dependencyFile?: string | (() => string);
+  warnOnMissing?: boolean;
+  failOnMissing?: boolean;
+  ignoreCircularDependency?: boolean;
+};
+type DependencyMap = Map<string, Set<string>>;
+const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
+  const opts = {
     commonJS: true,
     esm: true,
     extensions: ['.js'],
     warnOnMissing: false,
     failOnMissing: false,
     ignoreCircularDependency: true,
-    ...opts
+    ...(defaultOpts || {})
   };
 
   const getRegexMatches = function(fileContents) {
@@ -43,7 +51,7 @@ const gulpUltimateDependent = function(opts = {}) {
     });
   };
 
-  const resolveFile = async function(fileName, fromFile) {
+  const resolveFile = async function(fileName: string, fromFile?: string) {
     const fileNames = [
       fileName,
       ...opts.extensions.map((ext) => `${fileName}${ext}`)
@@ -52,27 +60,26 @@ const gulpUltimateDependent = function(opts = {}) {
     let res;
     for (const extName of fileNames) {
       try {
-        const buf = await readFileAsync(extName);
+        const buf = await fsPromises.readFile(extName);
         actualFileName = extName;
         res = buf;
         break;
-      } catch(err) { }
+      } catch(err) {
+        if (opts.warnOnMissing) {
+          console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
+        }
+        if (opts.failOnMissing) {
+          throw err;
+        }
+      }
     }
     if (res) {
       return [actualFileName, res];
     }
-    if (opts.warnOnMissing) {
-      console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
-    }
-    if (opts.failOnMissing) {
-      const err = new Error(`Error opening file ${fileName} from ${fromFile || fileName}`);
-      err.code = 'ENOENT';
-      throw err;
-    }
     return [null, null];
   };
 
-  const getMatches = async function(depMap, fileName, fromFile) {
+  const getMatches = async function(depMap: DependencyMap, fileName: string, fromFile?: string) {
     fileName = path.resolve(fileName);
     if (depMap.has(fileName)) {
       return;
@@ -110,66 +117,66 @@ const gulpUltimateDependent = function(opts = {}) {
         res[k] = Array.from(set.keys());
         return res;
       }, {});
-      await writeFileAsync(fileName, JSON.stringify(depObj, null, 2));
+      await fsPromises.writeFile(fileName, JSON.stringify(depObj, null, 2));
     }
   };
 
   const buildDepMap = async function() {
-    const depMap = new Map();
+    const depMap: DependencyMap = new Map();
     const ultimates = await aGlob(opts.ultimateGlob, { absolute: true });
     const ultimateMatches = ultimates.map(async (f) => getMatches(depMap, f));
     await Promise.all(ultimateMatches);
     await writeDependencies(depMap);
-    return [depMap, new Set(ultimates)];
+    return [depMap, new Set(ultimates)] as const;
   };
 
-  class UltimateDependent extends Transform {
-    constructor() {
-      super({ objectMode: true });
-      this.files = [];
-      this.seen = new Set();
+  const seen = new Set<string>();
+  const findPagesForComponent = function(depMap: DependencyMap, ultimatesSet: Set<string>, c: string) {
+    if (!c.startsWith('/')) {
+      c = '/' + c;
     }
-    findPagesForComponent(depMap, ultimatesSet, c) {
-      if (!c.startsWith('/')) {
-        c = '/' + c;
-      }
-      if (ultimatesSet.has(c)) {
-        return [c];
-      }
-      if (this.seen.has(c)) {
-        if (opts.ignoreCircularDependency) {
-          return [];
-        } else {
-          throw new Error(`Circular dependency detected in ${c}`);
-        }
-      }
-      this.seen.add(c);
-      const pages = [];
-      for (let [k, set] of depMap) {
-        if (!set.has(c)) { continue; }
-        pages.push(this.findPagesForComponent(depMap, ultimatesSet, k));
-      }
-      return pages;
+    if (ultimatesSet.has(c)) {
+      return [c];
     }
-    _transform(file, _, done) {
-      buildDepMap().then(([depMap, ultimatesSet]) => {
-        this.files = this.files.concat(this.findPagesForComponent(depMap, ultimatesSet, file.path));
+    if (seen.has(c)) {
+      if (opts.ignoreCircularDependency) {
+        return [];
+      } else {
+        throw new Error(`Circular dependency detected in ${c}`);
+      }
+    }
+    seen.add(c);
+    const pages: string[] = [];
+    for (const [k, set] of depMap) {
+      if (!set.has(c)) { continue; }
+      pages.push(...findPagesForComponent(depMap, ultimatesSet, k));
+    }
+    return pages;
+  };
+
+  const files: string[] = [];
+  const ultimateTransform = new Transform({
+    objectMode: true,
+    async transform(file, _, done) {
+      try {
+        const [depMap, ultimatesSet] = await buildDepMap();
+        files.push(...findPagesForComponent(depMap, ultimatesSet, file.path));
         done();
-      }).catch((err) => {
+      } catch(err) {
         done(err);
-      });
-    }
-    _flush(done) {
-      const pages = uniqBy(flattenDeep(this.files), (p) => {
+      }
+    },
+    flush(done) {
+      const fileSet = uniqBy(files, (p) => {
         const parts = p.split('/');
         return parts[parts.length - 1];
       });
-      pages.forEach((p) => this.push(new Vinyl({ path: p })));
+      fileSet.forEach((p) => this.push(new Vinyl({ path: p })));
       done();
     }
-  }
+  });
 
-  return new UltimateDependent();
+  return ultimateTransform;
 };
 
-module.exports = gulpUltimateDependent;
+export default gulpUltimateDependent;

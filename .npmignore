@@ -1,1 +1,5 @@
-test
+test/
+src/
+tsconfig.json
+.eslintrc
+.gitignore
