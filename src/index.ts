@@ -33,7 +33,7 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
     ...(defaultOpts || {})
   };
 
-  const getRegexMatches = function(fileContents) {
+  const getRegexMatches = function(fileContents: string) {
     const matches = [];
     if (opts.commonJS) {
       const commonJS = [...fileContents.matchAll(requireRegex())].map((match) => match[4]);
@@ -56,8 +56,8 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
       fileName,
       ...opts.extensions.map((ext) => `${fileName}${ext}`)
     ];
-    let actualFileName;
-    let res;
+    let actualFileName: string = null;
+    let res: Buffer = null;
     for (const extName of fileNames) {
       try {
         const buf = await fsPromises.readFile(extName);
@@ -73,10 +73,7 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
         }
       }
     }
-    if (res) {
-      return [actualFileName, res];
-    }
-    return [null, null];
+    return [actualFileName, res] as const;
   };
 
   const getMatches = async function(depMap: DependencyMap, fileName: string, fromFile?: string) {
