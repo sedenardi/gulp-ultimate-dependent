@@ -116,8 +116,9 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
       return;
     }
     const [actualFileName, matches] = deps;
-    const depMatches = matches.map(async (f) => saveAndProcessDependencies(f, actualFileName));
-    await Promise.all(depMatches);
+    for (const match of matches) {
+      await saveAndProcessDependencies(match, actualFileName);
+    }
   };
 
   const writeDependencies = async function() {
