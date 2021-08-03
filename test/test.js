@@ -4,7 +4,7 @@ const { describe, it } = require('mocha');
 const assert = require('assert');
 
 const JS_GLOB = '**/entry-*.js';
-const TS_GLOB = '**/entry-*.{js,ts}';
+const TS_GLOB = '**/entry-*.{js,ts,tsx}';
 
 // const getStream = function(opts = {}) {
 //   opts = {
@@ -260,6 +260,83 @@ describe('gulp-ultimate-dependent - TS', () => {
 
     stream.on('error', (err) => {
       assert.ok(err.message.startsWith('Circular dependency detected in'));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('return if immediate TSX dependency changed', (done) => {
+    const fileName = 'files/components/dep-1-7.tsx';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      extensions: ['.js', '.ts', '.tsx']
+    });
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results.some((r) => r.includes('files/entry-6.tsx')));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('consider type-only import', (done) => {
+    const fileName = 'files/components/dep-1-8.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      skipTypeImports: false,
+      extensions: ['.js', '.ts', '.tsx']
+    });
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results.some((r) => r.includes('files/entry-6.tsx')));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('skip type-only import', (done) => {
+    const fileName = 'files/components/dep-1-8.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      skipTypeImports: true,
+      extensions: ['.js', '.ts', '.tsx']
+    });
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 0);
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('JSON import', (done) => {
+    const fileName = 'files/components/dep-1-9.json';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      extensions: ['.js', '.ts', '.tsx']
+    });
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results.some((r) => r.includes('files/entry-7.ts')));
       done();
     });
 

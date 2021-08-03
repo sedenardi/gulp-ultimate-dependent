@@ -4,51 +4,41 @@ import { promisify } from 'util';
 import uniqBy from 'lodash.uniqby';
 import glob from 'glob';
 const aGlob = promisify(glob);
-
 import { Transform } from 'stream';
 import Vinyl from 'vinyl';
-
-import requireRegex from 'requires-regex';
-import importRegex from 'esm-import-regex';
+import detective from 'detective-typescript';
 
 type UltimateDependentOpts = {
   ultimateGlob: string;
-  commonJS?: boolean;
-  esm?: boolean;
   extensions?: string[];
   dependencyFile?: string | (() => string);
   warnOnMissing?: boolean;
   failOnMissing?: boolean;
   ignoreCircularDependency?: boolean;
+  skipTypeImports?: boolean;
+  mixedImports?: boolean;
+  jsx?: boolean;
 };
 type DependencyMap = Map<string, Set<string>>;
 const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
   const opts = {
-    commonJS: true,
-    esm: true,
     extensions: ['.js'],
     warnOnMissing: false,
     failOnMissing: false,
     ignoreCircularDependency: true,
+    skipTypeImports: true,
+    mixedImports: true,
+    jsx: true,
     ...(defaultOpts || {})
   };
 
-  const getRegexMatches = function(fileContents: string) {
-    const matches = [];
-    if (opts.commonJS) {
-      const commonJS = [...fileContents.matchAll(requireRegex())].map((match) => match[4]);
-      matches.push(...commonJS);
-    }
-    if (opts.esm) {
-      const esm = [...fileContents.matchAll(importRegex())].map((match) => match[2]);
-      matches.push(...esm);
-    }
-    return matches.filter((match) => {
-      return typeof match === 'string' && (
-        match.startsWith('./') ||
-        match.startsWith('../')
-      );
+  const getDependencies = function(fileContents: string) {
+    const dependencies = detective(fileContents, {
+      skipTypeImports: opts.skipTypeImports,
+      mixedImports: opts.mixedImports,
+      jsx: opts.jsx
     });
+    return dependencies;
   };
 
   const resolveFile = async function(fileName: string, fromFile?: string) {
@@ -65,12 +55,17 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
         res = buf;
         break;
       } catch(err) {
-        if (opts.warnOnMissing) {
-          console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
-        }
-        if (opts.failOnMissing) {
-          throw err;
-        }
+        // error reading file
+      }
+    }
+    if (!res) {
+      if (opts.warnOnMissing) {
+        console.log(`WARNING: error opening file ${fileName} from ${fromFile || fileName}`);
+      }
+      if (opts.failOnMissing) {
+        const err: any = new Error(`Error opening file ${fileName} from ${fromFile || fileName}`);
+        err.code = 'ENOENT';
+        throw err;
       }
     }
     return [actualFileName, res] as const;
@@ -81,13 +76,16 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
     if (depMap.has(fileName)) {
       return;
     }
+    if (fileName.toLowerCase().endsWith('.json')) {
+      return;
+    }
     const [actualFileName, res] = await resolveFile(fileName, fromFile);
     if (!res) {
       return;
     }
     depMap.set(actualFileName, new Set());
     const fileContents = res.toString();
-    const rMatches = getRegexMatches(fileContents);
+    const rMatches = getDependencies(fileContents);
     const matches = [];
     for (const match of rMatches) {
       const result = path.resolve(path.join(path.dirname(actualFileName), match));

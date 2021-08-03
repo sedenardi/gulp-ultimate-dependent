@@ -5,7 +5,8 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
-    "outDir": "./lib"
+    "outDir": "./lib",
+    "resolveJsonModule": true
   },
   "include": ["src"],
   "exclude": ["node_modules"]
