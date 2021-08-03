@@ -1,10 +1,10 @@
-const ultimateDependent = require('..');
+const ultimateDependent = require('../lib/index').default;
 const path = require('path');
 const { describe, it } = require('mocha');
 const assert = require('assert');
 
 const JS_GLOB = '**/entry-*.js';
-const TS_GLOB = '**/entry-*.{js,ts}';
+const TS_GLOB = '**/entry-*.{js,ts,tsx}';
 
 // const getStream = function(opts = {}) {
 //   opts = {
@@ -27,12 +27,12 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const filePath = path.resolve(__dirname, fileName);
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 1);
+      assert.strictEqual(results.length, 1);
       assert.ok(results[0].includes('files/entry-1.js'));
       done();
     });
@@ -45,12 +45,12 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const filePath = path.resolve(__dirname, fileName);
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 1);
+      assert.strictEqual(results.length, 1);
       assert.ok(results[0].includes('files/entry-2.js'));
       done();
     });
@@ -63,12 +63,12 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const filePath = path.resolve(__dirname, fileName);
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 2);
+      assert.strictEqual(results.length, 2);
       assert.ok(results.some((r) => r.includes('files/entry-1.js')));
       done();
     });
@@ -81,12 +81,12 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const filePath = path.resolve(__dirname, fileName);
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 0);
+      assert.strictEqual(results.length, 0);
       done();
     });
 
@@ -100,11 +100,11 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB,
       failOnMissing: true
-    });
-    stream.on('data', (file) => { results.push(file.path); });
+    })();
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('error', (err) => {
-      assert.equal(err.code, 'ENOENT');
+      assert.strictEqual(err.code, 'ENOENT');
       done();
     });
 
@@ -120,12 +120,12 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 1);
+      assert.strictEqual(results.length, 1);
       assert.ok(results[0].includes('files/entry-4.ts'));
       done();
     });
@@ -139,12 +139,12 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 1);
+      assert.strictEqual(results.length, 1);
       assert.ok(results[0].includes('files/entry-4.ts'));
       done();
     });
@@ -158,12 +158,12 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 2);
+      assert.strictEqual(results.length, 2);
       assert.ok(results.some((r) => r.includes('files/entry-4.ts')));
       done();
     });
@@ -177,12 +177,12 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 1);
+      assert.strictEqual(results.length, 1);
       assert.ok(results.some((r) => r.includes('files/entry-4.ts')));
       done();
     });
@@ -196,12 +196,12 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 0);
+      assert.strictEqual(results.length, 0);
       done();
     });
 
@@ -216,11 +216,11 @@ describe('gulp-ultimate-dependent - TS', () => {
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts'],
       failOnMissing: true
-    });
-    stream.on('data', (file) => { results.push(file.path); });
+    })();
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('error', (err) => {
-      assert.equal(err.code, 'ENOENT');
+      assert.strictEqual(err.code, 'ENOENT');
       done();
     });
 
@@ -234,12 +234,12 @@ describe('gulp-ultimate-dependent - TS', () => {
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts'],
       ignoreCircularDependency: true
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('finish', () => {
-      assert.equal(results.length, 1);
+      assert.strictEqual(results.length, 1);
       assert.ok(results.some((r) => r.includes('files/entry-circular.ts')));
       done();
     });
@@ -254,12 +254,128 @@ describe('gulp-ultimate-dependent - TS', () => {
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts'],
       ignoreCircularDependency: false
-    });
+    })();
     const results = [];
-    stream.on('data', (file) => { results.push(file.path); });
+    stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('error', (err) => {
       assert.ok(err.message.startsWith('Circular dependency detected in'));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('return if immediate TSX dependency changed', (done) => {
+    const fileName = 'files/components/dep-1-7.tsx';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      extensions: ['.js', '.ts', '.tsx']
+    })();
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results.some((r) => r.includes('files/entry-6.tsx')));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('consider type-only import', (done) => {
+    const fileName = 'files/components/dep-1-8.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      skipTypeImports: false,
+      extensions: ['.js', '.ts', '.tsx']
+    })();
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results.some((r) => r.includes('files/entry-6.tsx')));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('skip type-only import', (done) => {
+    const fileName = 'files/components/dep-1-8.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      skipTypeImports: true,
+      extensions: ['.js', '.ts', '.tsx']
+    })();
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 0);
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('JSON import', (done) => {
+    const fileName = 'files/components/dep-1-9.json';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = ultimateDependent({
+      ultimateGlob: TS_GLOB,
+      extensions: ['.js', '.ts', '.tsx']
+    })();
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results.some((r) => r.includes('files/entry-7.ts')));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+});
+describe('gulp-ultimate-dependent - reuse dependency map', () => {
+  const getStream = ultimateDependent({
+    ultimateGlob: TS_GLOB,
+    extensions: ['.js', '.ts'],
+    debug: true
+  });
+  it('initial run', (done) => {
+    const fileName = 'files/components/dep-1-5.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = getStream();
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results[0].includes('files/entry-4.ts'));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('subsequent run', (done) => {
+    const fileName = 'files/components/dep-1-5.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = getStream();
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results[0].includes('files/entry-4.ts'));
       done();
     });
 
