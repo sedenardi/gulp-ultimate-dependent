@@ -27,7 +27,7 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const filePath = path.resolve(__dirname, fileName);
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -45,7 +45,7 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const filePath = path.resolve(__dirname, fileName);
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -63,7 +63,7 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const filePath = path.resolve(__dirname, fileName);
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -81,7 +81,7 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const filePath = path.resolve(__dirname, fileName);
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -100,7 +100,7 @@ describe('gulp-ultimate-dependent - JS only', () => {
     const stream = ultimateDependent({
       ultimateGlob: JS_GLOB,
       failOnMissing: true
-    });
+    })();
     stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('error', (err) => {
@@ -120,7 +120,7 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -139,7 +139,7 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -158,7 +158,7 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -177,7 +177,7 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -196,7 +196,7 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts']
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -216,7 +216,7 @@ describe('gulp-ultimate-dependent - TS', () => {
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts'],
       failOnMissing: true
-    });
+    })();
     stream.on('data', (file) => { results.push(file.path); });
 
     stream.on('error', (err) => {
@@ -234,7 +234,7 @@ describe('gulp-ultimate-dependent - TS', () => {
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts'],
       ignoreCircularDependency: true
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -254,7 +254,7 @@ describe('gulp-ultimate-dependent - TS', () => {
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts'],
       ignoreCircularDependency: false
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -272,7 +272,7 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts', '.tsx']
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -292,7 +292,7 @@ describe('gulp-ultimate-dependent - TS', () => {
       ultimateGlob: TS_GLOB,
       skipTypeImports: false,
       extensions: ['.js', '.ts', '.tsx']
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -312,7 +312,7 @@ describe('gulp-ultimate-dependent - TS', () => {
       ultimateGlob: TS_GLOB,
       skipTypeImports: true,
       extensions: ['.js', '.ts', '.tsx']
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 
@@ -330,7 +330,7 @@ describe('gulp-ultimate-dependent - TS', () => {
     const stream = ultimateDependent({
       ultimateGlob: TS_GLOB,
       extensions: ['.js', '.ts', '.tsx']
-    });
+    })();
     const results = [];
     stream.on('data', (file) => { results.push(file.path); });
 

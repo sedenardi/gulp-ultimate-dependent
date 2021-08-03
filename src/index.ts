@@ -149,29 +149,31 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
     return pages;
   };
 
-  const files: string[] = [];
-  const ultimateTransform = new Transform({
-    objectMode: true,
-    async transform(file, _, done) {
-      try {
-        const [depMap, ultimatesSet] = await buildDepMap();
-        files.push(...findPagesForComponent(depMap, ultimatesSet, file.path));
+  return function() {
+    const files: string[] = [];
+    const ultimateTransform = new Transform({
+      objectMode: true,
+      async transform(file, _, done) {
+        try {
+          const [depMap, ultimatesSet] = await buildDepMap();
+          files.push(...findPagesForComponent(depMap, ultimatesSet, file.path));
+          done();
+        } catch(err) {
+          done(err);
+        }
+      },
+      flush(done) {
+        const fileSet = uniqBy(files, (p) => {
+          const parts = p.split('/');
+          return parts[parts.length - 1];
+        });
+        fileSet.forEach((p) => this.push(new Vinyl({ path: p })));
         done();
-      } catch(err) {
-        done(err);
       }
-    },
-    flush(done) {
-      const fileSet = uniqBy(files, (p) => {
-        const parts = p.split('/');
-        return parts[parts.length - 1];
-      });
-      fileSet.forEach((p) => this.push(new Vinyl({ path: p })));
-      done();
-    }
-  });
+    });
 
-  return ultimateTransform;
+    return ultimateTransform;
+  };
 };
 
 export default gulpUltimateDependent;
