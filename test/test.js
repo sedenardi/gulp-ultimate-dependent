@@ -344,3 +344,42 @@ describe('gulp-ultimate-dependent - TS', () => {
     stream.end();
   });
 });
+describe('gulp-ultimate-dependent - reuse dependency map', () => {
+  const getStream = ultimateDependent({
+    ultimateGlob: TS_GLOB,
+    extensions: ['.js', '.ts'],
+    debug: true
+  });
+  it('initial run', (done) => {
+    const fileName = 'files/components/dep-1-5.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = getStream();
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results[0].includes('files/entry-4.ts'));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+  it('subsequent run', (done) => {
+    const fileName = 'files/components/dep-1-5.ts';
+    const filePath = path.resolve(__dirname, fileName);
+    const stream = getStream();
+    const results = [];
+    stream.on('data', (file) => { results.push(file.path); });
+
+    stream.on('finish', () => {
+      assert.strictEqual(results.length, 1);
+      assert.ok(results[0].includes('files/entry-4.ts'));
+      done();
+    });
+
+    stream.write({ path: filePath});
+    stream.end();
+  });
+});

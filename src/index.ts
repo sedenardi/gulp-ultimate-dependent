@@ -18,6 +18,7 @@ type UltimateDependentOpts = {
   skipTypeImports?: boolean;
   mixedImports?: boolean;
   jsx?: boolean;
+  debug?: boolean;
 };
 type DependencyMap = Map<string, Set<string>>;
 const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
@@ -29,8 +30,11 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
     skipTypeImports: true,
     mixedImports: true,
     jsx: true,
+    debug: false,
     ...(defaultOpts || {})
   };
+  let depMap: DependencyMap;
+  let ultimates: Set<string>;
 
   const getDependencies = function(fileContents: string) {
     const dependencies = detective(fileContents, {
@@ -71,22 +75,22 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
     return [actualFileName, res] as const;
   };
 
-  const getMatches = async function(depMap: DependencyMap, fileName: string, fromFile?: string) {
+  const saveDependencies = async function(fileName: string, fromFile?: string) {
     fileName = path.resolve(fileName);
     if (depMap.has(fileName)) {
-      return;
+      return null;
     }
     if (fileName.toLowerCase().endsWith('.json')) {
-      return;
+      return null;
     }
     const [actualFileName, res] = await resolveFile(fileName, fromFile);
     if (!res) {
-      return;
+      return null;
     }
     depMap.set(actualFileName, new Set());
     const fileContents = res.toString();
     const rMatches = getDependencies(fileContents);
-    const matches = [];
+    const matches: string[] = [];
     for (const match of rMatches) {
       const result = path.resolve(path.join(path.dirname(actualFileName), match));
       const [actualMatch] = await resolveFile(result, actualFileName);
@@ -98,11 +102,20 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
       }
       matches.push(actualMatch);
     }
-    const depMatches = matches.map(async (f) => getMatches(depMap, f, actualFileName));
-    return await Promise.all(depMatches);
+    return [actualFileName, matches] as const;
   };
 
-  const writeDependencies = async function(depMap) {
+  const saveAndProcessDependencies = async function(fileName: string, fromFile?: string) {
+    const deps = await saveDependencies(fileName, fromFile);
+    if (!deps) {
+      return;
+    }
+    const [actualFileName, matches] = deps;
+    const depMatches = matches.map(async (f) => saveAndProcessDependencies(f, actualFileName));
+    await Promise.all(depMatches);
+  };
+
+  const writeDependencies = async function() {
     let fileName = opts.dependencyFile;
     if (typeof fileName === 'function') {
       fileName = fileName();
@@ -116,47 +129,61 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
     }
   };
 
-  const buildDepMap = async function() {
-    const depMap: DependencyMap = new Map();
-    const ultimates = await aGlob(opts.ultimateGlob, { absolute: true });
-    const ultimateMatches = ultimates.map(async (f) => getMatches(depMap, f));
-    await Promise.all(ultimateMatches);
-    await writeDependencies(depMap);
-    return [depMap, new Set(ultimates)] as const;
-  };
-
-  const seen = new Set<string>();
-  const findPagesForComponent = function(depMap: DependencyMap, ultimatesSet: Set<string>, c: string) {
-    if (!c.startsWith('/')) {
-      c = '/' + c;
-    }
-    if (ultimatesSet.has(c)) {
-      return [c];
-    }
-    if (seen.has(c)) {
-      if (opts.ignoreCircularDependency) {
-        return [];
-      } else {
-        throw new Error(`Circular dependency detected in ${c}`);
+  const buildDepMap = async function(affectedFile: string) {
+    const now = Date.now();
+    if (!depMap || !depMap.has(affectedFile)) {
+      if (opts.debug) {
+        console.log('DEBUG: Full dependency map rebuild');
       }
+      depMap = new Map();
+      const ultimateMatches = await aGlob(opts.ultimateGlob, { absolute: true });
+      ultimates = new Set(ultimateMatches);
+      await Promise.all(ultimateMatches.map(async (f) => saveAndProcessDependencies(f)));
+    } else {
+      if (opts.debug) {
+        console.log('DEBUG: Partial dependency map rebuild');
+      }
+      depMap.delete(affectedFile);
+      await saveDependencies(affectedFile);
     }
-    seen.add(c);
-    const pages: string[] = [];
-    for (const [k, set] of depMap) {
-      if (!set.has(c)) { continue; }
-      pages.push(...findPagesForComponent(depMap, ultimatesSet, k));
+    await writeDependencies();
+    if (opts.debug) {
+      console.log(`DEBUG: Rebuild took ${Date.now() - now}ms`);
     }
-    return pages;
   };
 
   return function() {
     const files: string[] = [];
+    const seen = new Set<string>();
+    const findPagesForComponent = function(c: string) {
+      if (!c.startsWith('/')) {
+        c = '/' + c;
+      }
+      if (ultimates.has(c)) {
+        return [c];
+      }
+      if (seen.has(c)) {
+        if (opts.ignoreCircularDependency) {
+          return [];
+        } else {
+          throw new Error(`Circular dependency detected in ${c}`);
+        }
+      }
+      seen.add(c);
+      const pages: string[] = [];
+      for (const [k, set] of depMap) {
+        if (!set.has(c)) { continue; }
+        pages.push(...findPagesForComponent(k));
+      }
+      return pages;
+    };
+
     const ultimateTransform = new Transform({
       objectMode: true,
       async transform(file, _, done) {
         try {
-          const [depMap, ultimatesSet] = await buildDepMap();
-          files.push(...findPagesForComponent(depMap, ultimatesSet, file.path));
+          await buildDepMap(file.path);
+          files.push(...findPagesForComponent(file.path));
           done();
         } catch(err) {
           done(err);
