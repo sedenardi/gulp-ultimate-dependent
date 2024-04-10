@@ -1,9 +1,7 @@
 import path from 'path';
 import { promises as fsPromises } from 'fs';
-import { promisify } from 'util';
 import uniqBy from 'lodash.uniqby';
-import glob from 'glob';
-const aGlob = promisify(glob);
+import { glob } from 'glob';
 import { Transform } from 'stream';
 import Vinyl from 'vinyl';
 import detective from 'detective-typescript';
@@ -142,7 +140,7 @@ const gulpUltimateDependent = function(defaultOpts: UltimateDependentOpts) {
         console.log('DEBUG: Full dependency map rebuild');
       }
       depMap = new Map();
-      const ultimateMatches = await aGlob(opts.ultimateGlob, { absolute: true });
+      const ultimateMatches = await glob(opts.ultimateGlob, { absolute: true });
       ultimates = new Set(ultimateMatches);
       await Promise.all(ultimateMatches.map(async (f) => saveAndProcessDependencies(f)));
     } else {
